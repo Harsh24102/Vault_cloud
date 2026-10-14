@@ -8,9 +8,10 @@ var Schema = mongoose.Schema;
 
 var room = new Schema({
     name:{
-        // TODO: generate a random name using random-name-generator NPM Package
         type: String,
-        default: uniqueNamesGenerator({ dictionaries: [adjectives, colors, animals] }) 
+        // A function, so every room gets its own name (a plain value was
+        // generated once at startup and shared by every room).
+        default: () => uniqueNamesGenerator({ dictionaries: [adjectives, colors, animals] })
     },
     members:[{
 
@@ -20,7 +21,10 @@ var room = new Schema({
     }],
     shortId: {
         type: String,
-        default: nanoid(6)
+        // Same fix: rooms are looked up by shortId, so a shared default
+        // made every room after the first one unreachable.
+        default: () => nanoid(6),
+        unique: true
         },
     createdBy: [{
         type: mongoose.Schema.Types.ObjectId,

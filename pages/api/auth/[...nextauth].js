@@ -14,43 +14,32 @@ export const authOptions = {
                 email: {label: "Email", type: 'email', placeholder: 'abc@example.com'},
                 password: {label: "Password", type: "password"}
             },
-            async authorize(credentials, req){
-                // console.log(credentials, req)
+            async authorize(credentials){
+                const email = credentials?.email
+                const password = credentials?.password
+                if (!email || !password) {
+                    throw new Error("Please enter email and password")
+                }
 
-                const name = credentials.name
-                const email = credentials.email
-                const password = credentials.password
-                
                 const user = await Users.findOne({email: email})
                 if(!user){
                     throw new Error("You haven't registered yet")
                 }
-                if(user){
-                    return signinUser({password, user})
-                }
-
-                if (user) {
-                  // Any object returned will be saved in `user` property of the JWT
-                  return user
-                } else {
-                  // If you return null then an error will be displayed advising the user to check their details.
-                  return null
-                }
+                return signinUser({password, user})
             }
         })
-    ]
+    ],
+    // Required in production; generate one with: openssl rand -base64 32
+    secret: process.env.NEXTAUTH_SECRET,
 }
 
 const signinUser = async ({ password, user }) => {
-    if (!user.password) {
-    throw new Error("Please enter password")
-    }
-
     const isMatch = await bcrypt.compare(password, user.password)
     if (!isMatch) {
     throw new Error("Password Incorrect.");
     }
-    return user;
+    // Return only what the session needs, never the password hash.
+    return { id: String(user._id), name: user.name, email: user.email };
 }
 
 export default connectDB(NextAuth(authOptions));

@@ -1,54 +1,33 @@
+import crypto from 'crypto'
 import connectDB from "../../../libs/utils/connectDB";
-import { unstable_getServerSession } from "next-auth/next"
-import { authOptions } from "../auth/[...nextauth]"
-import Requests from "../../../libs/models/Requests";
 import Users from "../../../libs/models/Users";
-import nodemailer from 'nodemailer'
+import { sendMail, appUrl } from "../../../libs/utils/mailer";
 
-export default connectDB(async function Forgot(req, res){
-
-        const user = await Users.findOne({email: req.query.email})
-        if(user){
-            if(user.token){
-                user.token=''
-            }
-            user.token = Math.random().toString(36).substr(2, 5)
-            await user.save()
-            
-
-                // TODO: Send EMail to -> req.query.email
-                var transporter = nodemailer.createTransport({
-                    service: 'gmail',
-                    auth: {
-                           user: 'vaultcloud06@gmail.com',
-                           pass: 'atmquqwlepzikfgw'
-                       }
-    
-                   });
-                   const mailOptions = {
-                    from: 'vaultcloud06@gmail.com', // sender address
-                    to: req.query.email, // list of receivers
-                    subject: 'Password reset', // Subject line
-                    html: '<p>Hi ,</p><p> We recieved a password reset request. </p><p>Click on the link to rest password. https://vaultcloud.netlify.app/fpass/'+user.token+'</p>'// FIXME: Change URL
-                  };
-                  transporter.sendMail(mailOptions, function (err, info) {
-                    if(err)
-                      return res.status(500).send({message:err})
-
-
-                    res.status(200).json({message: 'success', data: []})
-                    return
-                    //   res.status(200).send({message:'e-Mail Sent!'})
-                 });
-                // 
-
-            
-
-            
-            
-        } else {
-            // Not Signed in
-            return res.status(403).json({success: false, message: 'Invalid User'})
+export default connectDB(async function Forgot(req, res) {
+    const email = String(req.query.email || '').trim()
+    if (!email) {
+        return res.status(400).json({ success: false, message: 'Email is required' })
     }
-    
+
+    const user = await Users.findOne({ email })
+    if (!user) {
+        return res.status(403).json({ success: false, message: 'Invalid User' })
+    }
+
+    // Long random token that cannot be guessed (was a 5-character Math.random value).
+    user.token = crypto.randomBytes(32).toString('hex')
+    await user.save()
+
+    try {
+        await sendMail({
+            to: user.email,
+            subject: 'Password reset',
+            html: `<p>Hi,</p><p>We received a password reset request.</p>` +
+                  `<p>Click the link to reset your password: ${appUrl()}/fpass/${user.token}</p>`,
+        })
+        return res.status(200).json({ message: 'success', data: [] })
+    } catch (err) {
+        console.error(err)
+        return res.status(500).json({ message: 'Could not send email' })
+    }
 })

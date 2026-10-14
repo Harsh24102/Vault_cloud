@@ -5,7 +5,7 @@ const files = new mongoose.Schema({
     name:{
         type:String,
         required:true,
-        default: nanoid(11)
+        default: () => nanoid(11)
     },
     friendlyName:{
         type:String,

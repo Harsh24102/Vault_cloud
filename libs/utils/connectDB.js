@@ -15,8 +15,9 @@ const connectDB = handler => async (req, res) => {
      console.log("Database connected!")
   }
   catch(err){
-
-    console.log(err)
+    // Stop here instead of running the handler without a database.
+    console.error(err)
+    return res.status(500).json({ message: 'Database connection failed' })
   }
   return handler(req, res);
 };

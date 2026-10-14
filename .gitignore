@@ -1,0 +1,15 @@
+# Dependencies and build output
+node_modules/
+.next/
+out/
+build/
+
+# Secrets: copy .env.example to .env.local and fill it in
+.env
+.env*.local
+
+# Logs and OS files
+npm-debug.log*
+yarn-error.log*
+.DS_Store
+Thumbs.db
